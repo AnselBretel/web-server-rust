@@ -1,5 +1,7 @@
 use std::{
-    io::{BufRead, BufReader, prelude::*}, net::{TcpListener, TcpStream},
+    fs,
+    io::{BufRead, BufReader, prelude::*},
+    net::{TcpListener, TcpStream},
 };
 
 fn main() {
@@ -11,14 +13,18 @@ fn main() {
     }
 }
 
-fn handle_connection(mut stream: TcpStream) {
-    // Here you can read from and write to the stream
-    // For example, you can read data sent by the client and respond accordingly
+fn handle_connection(mut stream: TcpStream) { // Here you can read from and write to the stream
     let buf_read = BufReader::new(&mut stream);
-    let http_request: Vec<_> = buf_read
-        .lines() //We extract the lines incoming from the stream and collect them into a vector of strings
-        .map(|line| line.unwrap()) //We unwrap the Result<String, Error> to get the actual string
-        .take_while(|line| !line.is_empty()) //we take lines until we encounter an empty line, which indicates the end of the HTTP request 
-        .collect(); //we collect the lines into a vector of strings
-    println!("Request: {http_request:#?}"); //then we print the request to the console 
+    let request_line= buf_read.lines().next().unwrap().unwrap(); //looking at the first line of the HTTP request
+
+    let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
+        ("HTTP/1.1 200 OK", "hello.html")
+    } else {
+        ("HTTP/1.1 404 NOT FOUND", "404.html")
+    };
+
+    let contents = fs::read_to_string(filename).unwrap();
+    let length = contents.len();
+    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+    stream.write_all(response.as_bytes()).unwrap();
 }
