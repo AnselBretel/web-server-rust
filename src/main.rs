@@ -1,3 +1,19 @@
+// Copyright 2026 SECO Mind Srl
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{
     fs,
     io::{BufRead, BufReader, prelude::*},
@@ -13,16 +29,16 @@ fn main() {
     }
 }
 
-fn handle_connection(mut stream: TcpStream) { // Here you can read from and write to the stream
+fn handle_connection(mut stream: TcpStream) {
+    // Here you can read from and write to the stream
     let buf_read = BufReader::new(&mut stream);
-    let request_line= buf_read.lines().next().unwrap().unwrap(); //looking at the first line of the HTTP request
+    let request_line = buf_read.lines().next().unwrap().unwrap(); //looking at the first line of the HTTP request
 
     let (status_line, filename) = if request_line == "GET / HTTP/1.1" {
         ("HTTP/1.1 200 OK", "hello.html")
     } else {
         ("HTTP/1.1 404 NOT FOUND", "404.html")
     };
-
     let contents = fs::read_to_string(filename).unwrap();
     let length = contents.len();
     let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
