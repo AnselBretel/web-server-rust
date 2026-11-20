@@ -63,4 +63,3 @@ component_management:
         - type: project
           target: auto
         - type: patch
-
