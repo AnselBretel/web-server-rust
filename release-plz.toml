@@ -26,10 +26,10 @@ git_release_body = """
 {{ changelog }}
 """
 changelog_path = "./CHANGELOG.md"
-repo_url = "git@github.com:AnselBretel/web-server-rust.git"
+repo_url = "git@github.com:AnselBretel/webserver.git"
 
 [[package]]
-name = "web-server-rust"
+name = "webserver"
 git_release_name = "v{{ version }}"
 git_tag_name = "v{{ version }}"
 git_tag_enable = true
