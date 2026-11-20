@@ -41,8 +41,8 @@ listPackage() {
 }
 
 pkgsFiles=$(
-    cat <(cargo package --allow-dirty -l -p "web-server-rust") \
-        <(listPackage "web-server-rust") |
+    cat <(cargo package --allow-dirty -l -p "webserver") \
+        <(listPackage "webserver") |
         sort -i |
         uniq
 )

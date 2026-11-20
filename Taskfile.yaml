@@ -25,7 +25,7 @@ output:
 set: [errexit, nounset, pipefail]
 
 vars:
-  MAIN_CRATE: "web-server-rust"
+  MAIN_CRATE: "webserver"
   MSRV: 1.88
 
 env:
