@@ -26,10 +26,10 @@ git_release_body = """
 {{ changelog }}
 """
 changelog_path = "./CHANGELOG.md"
-repo_url = "@REPO_URL@"
+repo_url = "git@github.com:AnselBretel/web-server-rust.git"
 
 [[package]]
-name = "@MAIN_CRATE@"
+name = "web-server-rust"
 git_release_name = "v{{ version }}"
 git_tag_name = "v{{ version }}"
 git_tag_enable = true

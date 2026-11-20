@@ -54,8 +54,8 @@ component_management:
           - "!master"
           - "!release-[0-9]+.[0-9]+"
   individual_components:
-    - component_id: "@MAIN_CRATE@"
-      name: "@MAIN_CRATE@"
+    - component_id: "web-server-rust"
+      name: "web-server-rust"
       paths:
         - src/**
         - src/*
@@ -63,7 +63,4 @@ component_management:
         - type: project
           target: auto
         - type: patch
-    - component_id: "@OTHER_CRATE"
-      name: "@OTHER_CRATE@"
-      paths:
-        - "@OTHER_CRATE_PATH@"
+
