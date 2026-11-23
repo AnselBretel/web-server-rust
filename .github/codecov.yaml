@@ -54,8 +54,8 @@ component_management:
           - "!master"
           - "!release-[0-9]+.[0-9]+"
   individual_components:
-    - component_id: "web-server-rust"
-      name: "web-server-rust"
+    - component_id: "webserver"
+      name: "webserver"
       paths:
         - src/**
         - src/*
