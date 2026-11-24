@@ -14,44 +14,109 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{
+use tokio::{
     fs,
-    io::{BufRead, BufReader, prelude::*},
+    io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
     net::{TcpListener, TcpStream},
-    thread,
-    time::Duration,
+    time::{Duration, sleep},
 };
-use webserver::ThreadPool;
 
-fn main() {
-    let listener = TcpListener::bind("127.0.0.1:7878").unwrap(); // Like ::new creates a new TcpListener and binds it to the specified address and port
-    let pool = ThreadPool::new(4);
+use color_eyre::eyre;
 
-    for stream in listener.incoming() {
-        let stream = stream.unwrap();
-        // Handle the client connection
-        pool.execute(|| {
-            handle_connection(stream);
+#[tokio::main]
+async fn main() -> eyre::Result<()> {
+    color_eyre::install()?;
+    let listener = TcpListener::bind("127.0.0.1:7878").await?;
+    loop {
+        let (socket, _) = listener.accept().await?;
+        tokio::spawn(async move {
+            match handle_connection(socket).await {
+                Err(error) => eyre::bail!("{error}"),
+                Ok(()) => {
+                    println!("Connected to the ip address!");
+                    Ok(())
+                }
+            }
         });
     }
-    println!("Shutting down.");
 }
+async fn handle_connection(mut socket: TcpStream) -> eyre::Result<()> {
+    let request_line = BufReader::new(&mut socket).lines().next_line().await?;
 
-fn handle_connection(mut stream: TcpStream) {
-    // Here you can read from and write to the stream
-    let buf_read = BufReader::new(&mut stream);
-    let request_line = buf_read.lines().next().unwrap().unwrap(); //looking at the first line of the HTTP request
-
-    let (status_line, filename) = match &request_line[..] {
-        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "html/hello.html"),
-        "GET /sleep HTTP/1.1" => {
-            thread::sleep(Duration::from_secs(5));
+    let (status_line, filename) = match request_line.as_deref() {
+        Some("GET / HTTP/1.1") => ("HTTP/1.1 200 OK", "html/hello.html"),
+        Some("GET /sleep HTTP/1.1") => {
+            sleep(Duration::from_secs(5)).await;
             ("HTTP/1.1 200 OK", "html/hello.html")
         }
-        _ => ("HTTP/1.1 404 NOT FOUND", "html/404.html"),
+        Some(_) => ("HTTP/1.1 404 NOT FOUND", "html/404.html"),
+        None => return Ok(()),
     };
-    let contents = fs::read_to_string(filename).unwrap();
+    let contents = fs::read_to_string(filename).await?;
     let length = contents.len();
     let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
-    stream.write_all(response.as_bytes()).unwrap();
+    socket.write_all(response.as_bytes()).await?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tokio::io::AsyncReadExt;
+
+    async fn run_request(raw_request: &str) -> eyre::Result<String> {
+        let listener = TcpListener::bind("127.0.0.1:0").await?;
+        let addr = listener.local_addr()?;
+
+        let server_task = tokio::spawn(async move {
+            let (socket, _) = listener.accept().await.unwrap();
+            handle_connection(socket).await.unwrap();
+        });
+
+        let mut client = TcpStream::connect(addr).await?;
+        client.write_all(raw_request.as_bytes()).await?;
+        client.shutdown().await?;
+
+        let mut response = String::new();
+        client.read_to_string(&mut response).await?;
+
+        server_task.await?;
+        Ok(response)
+    }
+
+    #[tokio::test]
+    async fn returns_200_and_hello_html() {
+        let expected_body = fs::read_to_string("html/hello.html").await.unwrap();
+        let expected = format!(
+            "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{expected_body}",
+            expected_body.len()
+        );
+
+        let response = run_request("GET / HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            .await
+            .unwrap();
+
+        assert_eq!(response, expected);
+    }
+
+    #[tokio::test]
+    async fn returns_404() {
+        let expected_body = fs::read_to_string("html/404.html").await.unwrap();
+        let expected = format!(
+            "HTTP/1.1 404 NOT FOUND\r\nContent-Length: {}\r\n\r\n{expected_body}",
+            expected_body.len()
+        );
+
+        let response = run_request("GET /non-existent HTTP/1.1\r\nHost: localhost\r\n\r\n")
+            .await
+            .unwrap();
+
+        assert_eq!(response, expected);
+    }
+
+    #[tokio::test]
+    async fn empty_connection_returns_no_response() {
+        let response = run_request("").await.unwrap();
+        assert_eq!(response, "");
+    }
 }

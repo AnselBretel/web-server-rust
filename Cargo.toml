@@ -26,8 +26,9 @@ license = "Apache-2.0"
 repository = "https://github.com/AnselBretel/web-server-rust.git"
 
 [workspace.dependencies]
-reqwest = {version = "0.13.5"}
-tokio = {version = "1.54.1", features =["full"]}
+reqwest = { version = "0.13.5" }
+tokio = { version = "1.54.1", features = ["full"] }
+color-eyre = "0.6.5"
 
 [package]
 name = "webserver"
@@ -39,3 +40,5 @@ repository.workspace = true
 publish = false
 
 [dependencies]
+tokio.workspace = true
+color-eyre.workspace= true
