@@ -44,4 +44,10 @@ fi
 
 # export E2E_DEVICE_ID E2E_TOKEN E2E_PAIRING_TOKEN E2E_STORE_DIR
 
-# cargo run --locked -p e2e-test -- run
+cargo build --workspace
+./target/debug/webserver &
+
+./target/debug/client
+
+kill %1
+wait %1 || true

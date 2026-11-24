@@ -27,7 +27,7 @@ fn main() {
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap(); // Like ::new creates a new TcpListener and binds it to the specified address and port
     let pool = ThreadPool::new(4);
 
-    for stream in listener.incoming().take(2) {
+    for stream in listener.incoming() {
         let stream = stream.unwrap();
         // Handle the client connection
         pool.execute(|| {
@@ -43,12 +43,12 @@ fn handle_connection(mut stream: TcpStream) {
     let request_line = buf_read.lines().next().unwrap().unwrap(); //looking at the first line of the HTTP request
 
     let (status_line, filename) = match &request_line[..] {
-        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
+        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "html/hello.html"),
         "GET /sleep HTTP/1.1" => {
             thread::sleep(Duration::from_secs(5));
-            ("HTTP/1.1 200 OK", "hello.html")
+            ("HTTP/1.1 200 OK", "html/hello.html")
         }
-        _ => ("HTTP/1.1 404 NOT FOUND", "404.html"),
+        _ => ("HTTP/1.1 404 NOT FOUND", "html/404.html"),
     };
     let contents = fs::read_to_string(filename).unwrap();
     let length = contents.len();
