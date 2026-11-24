@@ -42,7 +42,7 @@ listPackage() {
 
 pkgsFiles=$(
     cat <(cargo package --allow-dirty -l -p "webserver") \
-        <(listPackage "webserver") |
+        <(listPackage "client") |
         sort -i |
         uniq
 )

@@ -14,10 +14,28 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-[package]
-name = "webserver"
+[workspace]
+resolver = "3"
+members = ["client"]
+
+[workspace.package]
 version = "0.1.0"
 edition = "2024"
+description = "Web server implementation"
+license = "Apache-2.0"
+repository = "https://github.com/AnselBretel/web-server-rust.git"
+
+[workspace.dependencies]
+reqwest = {version = "0.13.5"}
+tokio = {version = "1.54.1", features =["full"]}
+
+[package]
+name = "webserver"
+version.workspace = true
+edition.workspace = true
+description.workspace = true
+license.workspace = true
+repository.workspace = true
 publish = false
 
 [dependencies]
