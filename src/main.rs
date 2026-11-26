@@ -14,6 +14,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
+use color_eyre::eyre;
 use tokio::{
     fs,
     io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -21,27 +22,59 @@ use tokio::{
     time::{Duration, sleep},
 };
 
-use color_eyre::eyre;
+use tracing::{Level, debug, error, info, instrument};
+use tracing_error::ErrorLayer;
+use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
+    init_tracing()?;
+
     let listener = TcpListener::bind("127.0.0.1:7878").await?;
+    let addr = listener.local_addr()?;
+    info!("listening on http://{addr}");
+
     loop {
-        let (socket, _) = listener.accept().await?;
+        let (socket, addr) = listener.accept().await?;
+        info!(%addr, "incoming connection");
+
         tokio::spawn(async move {
             match handle_connection(socket).await {
-                Err(error) => eyre::bail!("{error}"),
+                Err(error) => {
+                    error!(%error, "couldn't handle connection");
+                    eyre::bail!(error)
+                }
                 Ok(()) => {
-                    println!("Connected to the ip address!");
+                    info!("connected to the ip address!");
                     Ok(())
                 }
             }
         });
     }
 }
+
+fn init_tracing() -> eyre::Result<()> {
+    let layer = tracing_subscriber::fmt::layer().with_filter(
+        EnvFilter::builder()
+            .with_default_directive(Level::DEBUG.into())
+            .from_env_lossy(),
+    );
+
+    let subscribers = tracing_subscriber::registry()
+        .with(layer)
+        .with(ErrorLayer::default());
+
+    subscribers.try_init()?;
+
+    Ok(())
+}
+
+#[instrument(skip_all,fields(addr=?socket.peer_addr().ok()))]
 async fn handle_connection(mut socket: TcpStream) -> eyre::Result<()> {
     let request_line = BufReader::new(&mut socket).lines().next_line().await?;
+
+    debug!("line read");
 
     let (status_line, filename) = match request_line.as_deref() {
         Some("GET / HTTP/1.1") => ("HTTP/1.1 200 OK", "html/hello.html"),
@@ -52,10 +85,12 @@ async fn handle_connection(mut socket: TcpStream) -> eyre::Result<()> {
         Some(_) => ("HTTP/1.1 404 NOT FOUND", "html/404.html"),
         None => return Ok(()),
     };
+
     let contents = fs::read_to_string(filename).await?;
     let length = contents.len();
     let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
     socket.write_all(response.as_bytes()).await?;
+
     Ok(())
 }
 
