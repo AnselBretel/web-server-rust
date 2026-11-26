@@ -14,25 +14,50 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-use color_eyre::eyre;
+use color_eyre::eyre::{self, Context};
 use reqwest::StatusCode;
+use tracing::{Level, info, instrument};
+use tracing_error::ErrorLayer;
+use tracing_subscriber::{EnvFilter, Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
+#[instrument]
 async fn fetch_connection(url: &str) -> eyre::Result<(StatusCode, String)> {
-    let response = reqwest::get(url).await?;
+    let response = reqwest::get(url).await.wrap_err("could not connect")?;
     let status = response.status();
     let body = response.text().await?;
+
     Ok((status, body))
 }
 
 #[tokio::main]
 async fn main() -> eyre::Result<()> {
     color_eyre::install()?;
+    init_tracing()?;
+
     let url = "http://127.0.0.1:7878/";
+    info!("listening on {url}");
+
     for _ in 0..10 {
         let (status, body) = fetch_connection(url).await?;
-        println!("The status is: {status}");
-        println!("The content is: {body}");
+        info!("The status is: {status}");
+        info!("The content is: {body}");
     }
+    Ok(())
+}
+
+fn init_tracing() -> eyre::Result<()> {
+    let layer = tracing_subscriber::fmt::layer().with_filter(
+        EnvFilter::builder()
+            .with_default_directive(Level::DEBUG.into())
+            .from_env_lossy(),
+    );
+
+    let subscribers = tracing_subscriber::registry()
+        .with(layer)
+        .with(ErrorLayer::default());
+
+    subscribers.try_init()?;
+
     Ok(())
 }
 

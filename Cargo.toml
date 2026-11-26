@@ -27,8 +27,11 @@ repository = "https://github.com/AnselBretel/web-server-rust.git"
 
 [workspace.dependencies]
 reqwest = { version = "0.13.5" }
-tokio = { version = "1.54.1", features = ["full"] }
+tokio = { version = "1.54.1", features = ["full"]}
 color-eyre = "0.6.5"
+tracing = "0.1.44"
+tracing-subscriber = "0.3.23"
+tracing-error = "0.2.1"
 
 [package]
 name = "webserver"
@@ -42,3 +45,7 @@ publish = false
 [dependencies]
 tokio.workspace = true
 color-eyre.workspace= true
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["env-filter"]}
+tracing-error.workspace = true
+
